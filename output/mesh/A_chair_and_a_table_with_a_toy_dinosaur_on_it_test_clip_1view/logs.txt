@@ -42,3 +42,21 @@ Iter 0, Loss: 0.0
 Iter 0, Validation Score: 0.18222824732462564
 Iter 9, Loss: 0.0
 Iter 9, Validation Score: 0.18222824732462564
+Iter 0, Loss: 0.0
+Iter 0, Loss: -0.05400817096233368
+Iter 0, Loss: -0.05068261921405792
+Iter 0, Validation Score: 0.19710143407185873
+Iter 9, Loss: -0.07879745960235596
+Iter 9, Validation Score: 0.19965938727060953
+Iter 0, Loss: -0.05068261921405792
+Iter 0, Validation Score: 0.19710143407185873
+Iter 99, Loss: 0.06285557150840759
+Iter 99, Validation Score: 0.21038943529129028
+Iter 0, Loss: -0.053498804569244385
+Iter 0, Validation Score: 0.19710143407185873
+Iter 0, Loss: -0.053498804569244385
+Iter 0, Validation Score: 0.19710143407185873
+Iter 0, Loss: -0.053498804569244385
+Iter 0, Validation Score: 0.19710143407185873
+Iter 8, Loss: -0.04096949100494385
+Iter 8, Validation Score: 0.19646026690800986

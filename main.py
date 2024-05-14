@@ -37,35 +37,26 @@ if __name__ == '__main__':
     parser.add_argument(
         "--views_per_iter",
         type=int,
-        default=1  # viewpoints sampled from calculated the loss in a single iteration
+        default=1
     )
     parser.add_argument(
         "--use_sds",
         type=int,
-        default=0  # use SDS loss when != 0
+        default=0
     )
     parser.add_argument(
         "--use_clip",
         type=int,
-        default=1  # use CLIP loss when != 0
+        default=1
     )
     parser.add_argument(
         "--use_rand_init",
         type=int,
-        default=0  # use sampling-base initialization for the initial positions of meshes
+        default=0
     )
     args = parser.parse_args()
-
-    #### rotation for meshes to face forward (edit it for the meshes downloaded from Internet) ####
-
-    # args.mesh_init_orientations = [(90, 180, 0), (90, 0, 0), (90, -90, 0)]
     args.mesh_init_orientations = [(0, 0, 0), (0, 0, 0), (0, 0, 0)]  # meshes from DreamGaussian need not to be rotated
 
-    ##########################
-
-    #### configs from LLM ####
-
-    # manually adjustthe initial positions of meshes (could use the suggestion from LLM instead)
 
     args.mesh_configs = [{
         "transition": (-1, 0, 0),
@@ -80,12 +71,11 @@ if __name__ == '__main__':
         {
             "transition": (0, 1, 0),
             "rotation": (0, 0, 0),
-            "scale": 0.5  # dinosaur
+            "scale": 0.5
         }]
 
     seed_everything(args.seed)
 
-    # create output directory
     args.output_dir = osp.join(args.output_dir, "mesh")
     output_dir = os.path.join(
         args.output_dir, args.prompt.replace(" ", "_") + args.postfix + ("_sds" if args.use_sds else "") + (
@@ -93,20 +83,18 @@ if __name__ == '__main__':
     )
     os.makedirs(output_dir, exist_ok=True)
 
-    # initialize SDS
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     sds = SDS(sd_version="2.1", device=device, output_dir=output_dir) if args.use_sds else None
     clip = CLIP(device=device, output_dir=output_dir) if args.use_clip else None
 
-    # optimize the texture map of a mesh
     start_time = time.time()
     assert (
             args.mesh_paths is not None
     ), "mesh_path should be provided for optimizing the texture map for a mesh"
 
-    neg_prompt = [""]  # ["", "distortion", "blur"]
+    neg_prompt = [""]
 
     optimizer=MeshTextureOptimizer(sds,clip,mesh_paths=args.mesh_paths, output_dir=output_dir, prompt=args.prompt, neg_prompt=neg_prompt,
-        device=device,total_iter=10, args=args)
+        device=device,total_iter=9, args=args)
     optimizer.optimize()
     print(f"Optimization took {time.time() - start_time:.2f} seconds")

@@ -3,6 +3,7 @@ import pytorch3d
 from pytorch3d.structures import Meshes
 import torch.nn.functional as F
 
+
 def quaternion_to_rotation_matrix(quaternion):
     """Convert a quaternion to a differentiable rotation matrix."""
     # Ensure quaternion is normalized

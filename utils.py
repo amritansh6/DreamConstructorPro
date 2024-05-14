@@ -51,127 +51,127 @@ def get_cosine_schedule_with_warmup(
     return LambdaLR(optimizer, lr_lambda, -1)
 
 
-def get_mesh_renderer(image_size=512, lights=None, device=None):
-    """
-    Returns a Pytorch3D Mesh Renderer.
-
-    Args:
-        image_size (int): The rendered image size.
-        lights: A default Pytorch3D lights object.
-        device (torch.device): The torch device to use (CPU or GPU). If not specified,
-            will automatically use GPU if available, otherwise CPU.
-    """
-    if device is None:
-        if torch.cuda.is_available():
-            device = torch.device("cuda:0")
-        else:
-            device = torch.device("cpu")
-    raster_settings = RasterizationSettings(
-        image_size=image_size,
-        blur_radius=0.0,
-        faces_per_pixel=1,
-    )
-    renderer = MeshRenderer(
-        rasterizer=MeshRasterizer(raster_settings=raster_settings),
-        shader=HardPhongShader(device=device, lights=lights),
-    )
-    return renderer
-
-
-def get_mesh_renderer_soft(image_size=512, lights=None, device=None, sigma=1e-4):
-    """
-    Create a soft renderer for differentaible texture rendering.
-    Ref: https://pytorch3d.org/tutorials/fit_textured_mesh#3.-Mesh-and-texture-prediction-via-textured-rendering
-
-    Args:
-        image_size (int): The rendered image size.
-        lights: A default Pytorch3D lights object.
-        device (torch.device): The torch device to use (CPU or GPU). If not specified,
-            will automatically use GPU if available, otherwise CPU.
-    """
-    if device is None:
-        if torch.cuda.is_available():
-            device = torch.device("cuda:0")
-        else:
-            device = torch.device("cpu")
-
-    # Rasterization settings for differentiable rendering, where the blur_radius
-    # initialization is based on Liu et al, 'Soft Rasterizer: A Differentiable
-    # Renderer for Image-based 3D Reasoning', ICCV 2019
-    raster_settings_soft = RasterizationSettings(
-        image_size=image_size,
-        blur_radius=np.log(1.0 / 1e-4 - 1.0) * sigma,
-        faces_per_pixel=50,
-        perspective_correct=False,
-        bin_size=0
-    )
-
-    # Differentiable soft renderer using per vertex RGB colors for texture
-    renderer = MeshRenderer(
-        rasterizer=MeshRasterizer(raster_settings=raster_settings_soft),
-        shader=HardPhongShader(device=device, lights=lights),
-    )
-    return renderer
-
-
-def render_360_views(mesh, renderer, device, dist=3, elev=0, output_path=None):
-    images = []
-    for azim in range(0, 360, 10):
-        R, T = look_at_view_transform(dist, elev, azim)
-        cameras = FoVPerspectiveCameras(device=device, R=R, T=T)
-
-        # Place a point light in front of the cow.
-        lights = PointLights(location=[[0, 0, -3]], device=device)
-
-        rend = renderer(mesh, cameras=cameras, lights=lights)
-        rend = rend.cpu().numpy()[0, ..., :3]  # (B, H, W, 4) -> (H, W, 3)
-        images.append(rend)
-
-    # convert to uint8 to suppress "lossy conversion" warning
-    images = [np.clip(img, -1, 1) for img in images]
-    images = [img_as_ubyte(img) for img in images]
-
-    # save a gif of the 360 rotation
-    imageio.mimsave(output_path, images, duration=67)
-
-
-from pytorch3d.io import load_obj, load_objs_as_meshes
-
-def init_mesh(
-    model_path,
-    device="cpu",
-):
-    print("=> loading target mesh...")
-    verts, faces, aux = load_obj(
-        model_path, device=device, load_textures=True, create_texture_atlas=True
-    )
-    mesh = load_objs_as_meshes([model_path], device=device)
-    faces = faces.verts_idx
-    return mesh, verts, faces, aux
-
-def clone_mesh(
-    mesh,
-    shift = [0., 0., 0.],
-    scale = 1.0
-):
-    shift = torch.tensor(shift, device=mesh.device)
-    return Meshes(verts=[mesh.verts_packed()*scale + shift], faces=[mesh.faces_packed()], textures=mesh.textures).to(mesh.device)
-
-def convert_to_textureVertex(textures_uv: TexturesUV, meshes:Meshes) -> TexturesVertex:
-    verts_colors_packed = torch.zeros_like(meshes.verts_packed())
-    verts_colors_packed[meshes.faces_packed()] = textures_uv.faces_verts_textures_packed()  # (*)
-    return TexturesVertex(packed_to_list(verts_colors_packed, meshes.num_verts_per_mesh()))
-
-def save_mesh_as_ply(mesh, path):
-    # Convert UV textures to vertex colors
-    textures = convert_to_textureVertex(mesh.textures, mesh)
-
-    # Use Open3D or similar to save the mesh as a PLY with vertex colors
-    o3d_mesh = o3d.geometry.TriangleMesh(vertices=o3d.utility.Vector3dVector(mesh.verts_packed().cpu().numpy()),
-                                        triangles=o3d.utility.Vector3iVector(mesh.faces_packed().cpu().numpy()))
-
-    o3d_mesh.vertex_colors = o3d.utility.Vector3dVector(textures.verts_features_packed().cpu().numpy())
-    o3d.io.write_triangle_mesh(path, o3d_mesh)
+# def get_mesh_renderer(image_size=512, lights=None, device=None):
+#     """
+#     Returns a Pytorch3D Mesh Renderer.
+#
+#     Args:
+#         image_size (int): The rendered image size.
+#         lights: A default Pytorch3D lights object.
+#         device (torch.device): The torch device to use (CPU or GPU). If not specified,
+#             will automatically use GPU if available, otherwise CPU.
+#     """
+#     if device is None:
+#         if torch.cuda.is_available():
+#             device = torch.device("cuda:0")
+#         else:
+#             device = torch.device("cpu")
+#     raster_settings = RasterizationSettings(
+#         image_size=image_size,
+#         blur_radius=0.0,
+#         faces_per_pixel=1,
+#     )
+#     renderer = MeshRenderer(
+#         rasterizer=MeshRasterizer(raster_settings=raster_settings),
+#         shader=HardPhongShader(device=device, lights=lights),
+#     )
+#     return renderer
+#
+#
+# def get_mesh_renderer_soft(image_size=512, lights=None, device=None, sigma=1e-4):
+#     """
+#     Create a soft renderer for differentaible texture rendering.
+#     Ref: https://pytorch3d.org/tutorials/fit_textured_mesh#3.-Mesh-and-texture-prediction-via-textured-rendering
+#
+#     Args:
+#         image_size (int): The rendered image size.
+#         lights: A default Pytorch3D lights object.
+#         device (torch.device): The torch device to use (CPU or GPU). If not specified,
+#             will automatically use GPU if available, otherwise CPU.
+#     """
+#     if device is None:
+#         if torch.cuda.is_available():
+#             device = torch.device("cuda:0")
+#         else:
+#             device = torch.device("cpu")
+#
+#     # Rasterization settings for differentiable rendering, where the blur_radius
+#     # initialization is based on Liu et al, 'Soft Rasterizer: A Differentiable
+#     # Renderer for Image-based 3D Reasoning', ICCV 2019
+#     raster_settings_soft = RasterizationSettings(
+#         image_size=image_size,
+#         blur_radius=np.log(1.0 / 1e-4 - 1.0) * sigma,
+#         faces_per_pixel=50,
+#         perspective_correct=False,
+#         bin_size=0
+#     )
+#
+#     # Differentiable soft renderer using per vertex RGB colors for texture
+#     renderer = MeshRenderer(
+#         rasterizer=MeshRasterizer(raster_settings=raster_settings_soft),
+#         shader=HardPhongShader(device=device, lights=lights),
+#     )
+#     return renderer
+#
+#
+# def render_360_views(mesh, renderer, device, dist=3, elev=0, output_path=None):
+#     images = []
+#     for azim in range(0, 360, 10):
+#         R, T = look_at_view_transform(dist, elev, azim)
+#         cameras = FoVPerspectiveCameras(device=device, R=R, T=T)
+#
+#         # Place a point light in front of the cow.
+#         lights = PointLights(location=[[0, 0, -3]], device=device)
+#
+#         rend = renderer(mesh, cameras=cameras, lights=lights)
+#         rend = rend.cpu().numpy()[0, ..., :3]  # (B, H, W, 4) -> (H, W, 3)
+#         images.append(rend)
+#
+#     # convert to uint8 to suppress "lossy conversion" warning
+#     images = [np.clip(img, -1, 1) for img in images]
+#     images = [img_as_ubyte(img) for img in images]
+#
+#     # save a gif of the 360 rotation
+#     imageio.mimsave(output_path, images, duration=67)
+#
+#
+# from pytorch3d.io import load_obj, load_objs_as_meshes
+#
+# def init_mesh(
+#     model_path,
+#     device="cpu",
+# ):
+#     print("=> loading target mesh...")
+#     verts, faces, aux = load_obj(
+#         model_path, device=device, load_textures=True, create_texture_atlas=True
+#     )
+#     mesh = load_objs_as_meshes([model_path], device=device)
+#     faces = faces.verts_idx
+#     return mesh, verts, faces, aux
+#
+# def clone_mesh(
+#     mesh,
+#     shift = [0., 0., 0.],
+#     scale = 1.0
+# ):
+#     shift = torch.tensor(shift, device=mesh.device)
+#     return Meshes(verts=[mesh.verts_packed()*scale + shift], faces=[mesh.faces_packed()], textures=mesh.textures).to(mesh.device)
+#
+# def convert_to_textureVertex(textures_uv: TexturesUV, meshes:Meshes) -> TexturesVertex:
+#     verts_colors_packed = torch.zeros_like(meshes.verts_packed())
+#     verts_colors_packed[meshes.faces_packed()] = textures_uv.faces_verts_textures_packed()  # (*)
+#     return TexturesVertex(packed_to_list(verts_colors_packed, meshes.num_verts_per_mesh()))
+#
+# def save_mesh_as_ply(mesh, path):
+#     # Convert UV textures to vertex colors
+#     textures = convert_to_textureVertex(mesh.textures, mesh)
+#
+#     # Use Open3D or similar to save the mesh as a PLY with vertex colors
+#     o3d_mesh = o3d.geometry.TriangleMesh(vertices=o3d.utility.Vector3dVector(mesh.verts_packed().cpu().numpy()),
+#                                         triangles=o3d.utility.Vector3iVector(mesh.faces_packed().cpu().numpy()))
+#
+#     o3d_mesh.vertex_colors = o3d.utility.Vector3dVector(textures.verts_features_packed().cpu().numpy())
+#     o3d.io.write_triangle_mesh(path, o3d_mesh)
 
 # calculate the text embs.
 @torch.no_grad()

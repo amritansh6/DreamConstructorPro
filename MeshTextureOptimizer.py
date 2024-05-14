@@ -9,9 +9,11 @@ from tqdm import tqdm
 import numpy as np
 import random
 from pytorch3d.renderer import FoVPerspectiveCameras, look_at_view_transform, PointLights
-from utils import (prepare_embeddings, prepare_clip_embeddings, get_mesh_renderer_soft,
-                   init_mesh, normalize_mesh_longest_axis, clone_mesh, random_mesh_initiailization_queue,
-                   seed_everything, save_mesh_as_ply, render_360_views, get_cosine_schedule_with_warmup)
+
+from CameraCreator import CameraCreator
+from rendered_utils import init_mesh, clone_mesh, save_mesh_as_ply, render_360_views, get_mesh_renderer_soft
+from utils import (prepare_embeddings, prepare_clip_embeddings, normalize_mesh_longest_axis, random_mesh_initiailization_queue,
+                   seed_everything, get_cosine_schedule_with_warmup)
 from Score_Distillation_Sampling import SDS
 from pytorch3d.structures import (
     join_meshes_as_batch,
@@ -38,7 +40,7 @@ class MeshTextureOptimizer:
         self.mesh_list = self.load_meshes()
         self.log_interval = log_interval
         self.sds_embeddings = prepare_embeddings(sds, prompt, neg_prompt) if args.use_sds else None
-        self.clip_embeddings = prepare_embeddings(clip, neg_prompt) if args.use_clip else None
+        self.clip_embeddings = prepare_clip_embeddings(clip, prompt,neg_prompt) if args.use_clip else None
         self.query_cameras, self.testing_cameras = self.create_cameras()
         self.loss_dict = {}
         self.save_mesh = save_mesh
@@ -58,17 +60,8 @@ class MeshTextureOptimizer:
         return mesh_list
 
     def create_cameras(self):
-        Rs, Ts = [], []
-        for elev in np.linspace(0, 15, 5, endpoint=True):
-            R, T = look_at_view_transform(dist=self.args.dist, elev=elev,
-                                          azim=np.linspace(-180, 180, 18, endpoint=False))
-            Rs.append(R)
-            Ts.append(T)
-        query_cameras = FoVPerspectiveCameras(R=torch.cat(Rs), T=torch.cat(Ts), device=self.device)
-
-        R, T = look_at_view_transform(dist=self.args.dist, elev=0, azim=np.linspace(-180, 180, 12, endpoint=False))
-        testing_cameras = FoVPerspectiveCameras(R=R, T=T, device=self.device)
-
+        camera_Creator=CameraCreator(device=self.device,dist=self.args.dist)
+        query_cameras, testing_cameras = camera_Creator.create_cameras()
         return query_cameras, testing_cameras
 
     def optimize(self):
