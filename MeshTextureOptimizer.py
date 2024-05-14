@@ -46,18 +46,26 @@ class MeshTextureOptimizer:
         self.save_mesh = save_mesh
 
     def load_meshes(self):
-        mesh_list = []
-        for mesh_path, mesh_init_orientation in zip(self.mesh_paths, self.args.mesh_init_orientations):
-            mesh, _, _, _ = init_mesh(mesh_path, device=self.device)
-            mesh = normalize_mesh_longest_axis(mesh, rotation_degrees=mesh_init_orientation)
-            mesh_list.append(mesh.to(self.device))
-        for i in range(len(mesh_list)):
-            mesh_list[i] = clone_mesh(mesh_list[i], shift=self.args.mesh_configs[i]["transition"],
-                                      scale=self.args.mesh_configs[i]["scale"])
+        mesh_list = [self.initialize_mesh(path, orientation)
+                     for path, orientation in zip(self.mesh_paths, self.args.mesh_init_orientations)]
+        mesh_list = [self.transform_mesh(mesh, config)
+                     for mesh, config in zip(mesh_list, self.args.mesh_configs)]
         if self.args.use_rand_init:
-            mesh_list = random_mesh_initiailization_queue(self.args, mesh_list, self.renderer, self.clip,
-                                                          self.clip_embeddings["default"], rand_scale=0.3)
+            mesh_list = self.apply_random_initialization(mesh_list)
+
         return mesh_list
+
+    def initialize_mesh(self, mesh_path, mesh_init_orientation):
+        mesh, _, _, _ = init_mesh(mesh_path, device=self.device)
+        mesh = normalize_mesh_longest_axis(mesh, rotation_degrees=mesh_init_orientation)
+        return mesh.to(self.device)
+
+    def transform_mesh(self, mesh, config):
+        return clone_mesh(mesh, shift=config["transition"], scale=config["scale"])
+
+    def apply_random_initialization(self, mesh_list):
+        return random_mesh_initiailization_queue(self.args, mesh_list, self.renderer,
+                                                 self.clip, self.clip_embeddings["default"], rand_scale=0.3)
 
     def create_cameras(self):
         camera_Creator=CameraCreator(device=self.device,dist=self.args.dist)
