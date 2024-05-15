@@ -25,7 +25,6 @@ if __name__ == '__main__':
         "-m",
         "--mesh_paths",
         type=list,
-        # default=["data/10213_Armed_ Dinner_Chair_v2_iterations-2.obj", "data/10241_Outdoor_table_w_hole_for_umbrella_v1_L3.obj", "data/11678_dinosaur_v1_L3.obj"],
         default=["data/dg/chair_sai.obj", "data/dg/table_sai.obj", "data/dg/toy_dinosaur_sai.obj"],
         help="Path to the input image",
     )
@@ -42,12 +41,12 @@ if __name__ == '__main__':
     parser.add_argument(
         "--use_sds",
         type=int,
-        default=0
+        default=1
     )
     parser.add_argument(
         "--use_clip",
         type=int,
-        default=1
+        default=0
     )
     parser.add_argument(
         "--use_rand_init",
@@ -95,6 +94,7 @@ if __name__ == '__main__':
     neg_prompt = [""]
 
     optimizer=MeshTextureOptimizer(sds,clip,mesh_paths=args.mesh_paths, output_dir=output_dir, prompt=args.prompt, neg_prompt=neg_prompt,
-        device=device,total_iter=9, args=args)
+        device=device,total_iter=3, args=args)
     optimizer.optimize()
+    optimizer.finalize()
     print(f"Optimization took {time.time() - start_time:.2f} seconds")

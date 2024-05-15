@@ -5,6 +5,7 @@ import time
 import torch
 import torch.nn.functional as F
 from PIL import Image
+from matplotlib import pyplot as plt
 from tqdm import tqdm
 import numpy as np
 import random
@@ -12,8 +13,9 @@ from pytorch3d.renderer import FoVPerspectiveCameras, look_at_view_transform, Po
 
 from CameraCreator import CameraCreator
 from rendered_utils import init_mesh, clone_mesh, save_mesh_as_ply, render_360_views, get_mesh_renderer_soft
-from utils import (prepare_embeddings, prepare_clip_embeddings, normalize_mesh_longest_axis, random_mesh_initiailization_queue,
-                   seed_everything, get_cosine_schedule_with_warmup)
+from utils import (prepare_embeddings, prepare_clip_embeddings, normalize_mesh_longest_axis,
+                   random_mesh_initiailization_queue,
+                   seed_everything, get_cosine_schedule_with_warmup, compute_centroid, euclidean_distance)
 from Score_Distillation_Sampling import SDS
 from pytorch3d.structures import (
     join_meshes_as_batch,
@@ -26,6 +28,7 @@ from differentiable_object import DifferentiableObject
 class MeshTextureOptimizer:
     def __init__(self, sds, clip, mesh_paths, output_dir, prompt, neg_prompt, device, total_iter, args,
                  log_interval=100, save_mesh=True):
+        self.distance_history = []
         self.sds = sds
         self.clip = clip
         self.mesh_paths = mesh_paths
@@ -84,6 +87,7 @@ class MeshTextureOptimizer:
         for i in tqdm(range(self.total_iter)):
             optimizer.zero_grad()
             mesh = join_meshes_as_scene(diff_objects())
+            print(diff_objects.n_meshes)
             sampled_cameras = self.query_cameras[
                 random.choices(range(len(self.query_cameras)), k=self.args.views_per_iter)]
             rend = torch.permute(self.renderer(mesh, cameras=sampled_cameras)[..., :3], (0, 3, 1, 2))
@@ -93,6 +97,14 @@ class MeshTextureOptimizer:
             torch.nn.utils.clip_grad_norm_(diff_objects.parameters(), max_norm=1.0)
             optimizer.step()
             scheduler.step()
+
+            transformed_meshes=diff_objects.meshes
+            if len(transformed_meshes)>1:
+                dist = self.compute_distance_between_meshes(transformed_meshes[1], transformed_meshes[2])
+                self.distance_history.append((iter, dist))
+                log_path = os.path.join(self.output_dir, "logs.txt")
+                self.write_log(log_path, f"Iter {iter}, Distance between meshes: {dist}")
+
 
             if i % self.log_interval == 0 or i == self.total_iter - 1:
                 self.log_outputs(mesh, i, loss, sampled_cameras[0])
@@ -129,9 +141,29 @@ class MeshTextureOptimizer:
                                  device=self.device, output_path=os.path.join(self.output_dir, f"final_mesh.gif"))
                 save_mesh_as_ply(mesh.detach(), os.path.join(self.output_dir, f"final_mesh.ply"))
 
+    def compute_distance_between_meshes(self, mesh1, mesh2):
+        """Compute the Euclidean distance between the centroids of two meshes."""
+        centroid1 = compute_centroid(mesh1)
+        centroid2 = compute_centroid(mesh2)
+        return euclidean_distance(centroid1, centroid2).item()
+
     def write_log(self, log_path, message):
         with open(log_path, 'a') as log_file:
             log_file.write(message + '\n')
+
+    def finalize(self):
+        self.plot_distance_history()
+
+    def plot_distance_history(self):
+        iters, dists = zip(*self.distance_history)
+        plt.figure(figsize=(10, 5))
+        plt.plot(iters, dists, marker='o', linestyle='-', color='b')
+        plt.title('Iteration vs Distance Between Meshes')
+        plt.xlabel('Iteration')
+        plt.ylabel('Distance')
+        plt.grid(True)
+        plt.savefig(os.path.join(self.output_dir, 'distance_vs_iteration.png'))
+        plt.close()
 
     def perform_validation(self, mesh, iter, log_path):
         loss = 0.0

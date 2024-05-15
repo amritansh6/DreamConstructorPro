@@ -13,16 +13,14 @@ from pytorch3d.renderer import (
     look_at_view_transform,
 )
 from tqdm import tqdm
+
+from rendered_utils import save_mesh_as_ply, render_360_views, get_mesh_renderer_soft, init_mesh
 from utils import (
     get_cosine_schedule_with_warmup,
-    get_mesh_renderer_soft,
-    init_mesh,
     clone_mesh,
     prepare_embeddings,
     prepare_clip_embeddings,
-    render_360_views,
     seed_everything,
-    save_mesh_as_ply,
     normalize_mesh_longest_axis,
     random_mesh_initiailization,
     random_mesh_initiailization_queue
@@ -102,7 +100,6 @@ def optimize_mesh_texture(
         )
         save_mesh_as_ply(mesh.detach(), osp.join(output_dir, f"initial_mesh.ply"))
 
-    # generate rendering viewpoints
     Rs = []
     Ts = []
     for elev in np.linspace(0, 15, 5, endpoint=True):
@@ -114,19 +111,16 @@ def optimize_mesh_texture(
 
     query_cameras = FoVPerspectiveCameras(R=Rs, T=Ts, device=mesh.device)
 
-    # generate rendering viewpoints
     R, T = look_at_view_transform(dist=args.dist, elev=0, azim=np.linspace(-180, 180, 12, endpoint=False))
     testing_cameras = FoVPerspectiveCameras(R=R, T=T, device=mesh.device)
 
-    # Step 4. Create optimizer training parameters
     parameters = [
         {'params': [diff_objects.scale], 'lr': 1e-3, "name": "scale"},
         {'params': [diff_objects.rotation], 'lr': 1e-2, "name": "rotation"},
         {'params': [diff_objects.transition], 'lr': 1e-2, "name": "transition"},
     ]
     optimizer = torch.optim.AdamW(parameters, lr=1e-4, weight_decay=0)
-    # total_iter = 20000
-    total_iter = 5
+    total_iter = 5000
     scheduler = get_cosine_schedule_with_warmup(optimizer, 100, int(total_iter * 1.5))
 
     # Step 5. Training loop to optimize the mesh positions
@@ -259,12 +253,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--use_sds",
         type=int,
-        default=1  # use SDS loss when != 0
+        default=0  # use SDS loss when != 0
     )
     parser.add_argument(
         "--use_clip",
         type=int,
-        default=0  # use CLIP loss when != 0
+        default=1  # use CLIP loss when != 0
     )
     parser.add_argument(
         "--use_rand_init",
