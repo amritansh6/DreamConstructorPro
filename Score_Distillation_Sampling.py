@@ -67,7 +67,7 @@ class SDS:
 
         w = 1 - self.alphas[t]
         gradient = w * (noise_pred - noise)
-        latents_target = latents - grad_scale * gradient #SDS Loss
+        latents_target = latents - grad_scale * gradient
         #img=self.decode_latents(latents_target)
 
 
