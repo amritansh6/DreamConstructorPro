@@ -43,7 +43,7 @@ class MeshTextureOptimizer:
         self.mesh_list = self.load_meshes()
         self.log_interval = log_interval
         self.sds_embeddings = prepare_embeddings(sds, prompt, neg_prompt) if args.use_sds else None
-        self.clip_embeddings = prepare_clip_embeddings(clip, prompt,neg_prompt) if args.use_clip else None
+        self.clip_embeddings = prepare_clip_embeddings(clip, prompt, neg_prompt) if args.use_clip else None
         self.query_cameras, self.testing_cameras = self.create_cameras()
         self.loss_dict = {}
         self.save_mesh = save_mesh
@@ -71,7 +71,7 @@ class MeshTextureOptimizer:
                                                  self.clip, self.clip_embeddings["default"], rand_scale=0.3)
 
     def create_cameras(self):
-        camera_Creator=CameraCreator(device=self.device,dist=self.args.dist)
+        camera_Creator = CameraCreator(device=self.device, dist=self.args.dist)
         query_cameras, testing_cameras = camera_Creator.create_cameras()
         return query_cameras, testing_cameras
 
@@ -83,6 +83,11 @@ class MeshTextureOptimizer:
             {'params': [diff_objects.transition], 'lr': 1e-2}
         ], lr=1e-4, weight_decay=0)
         scheduler = get_cosine_schedule_with_warmup(optimizer, 100, int(self.total_iter * 1.5))
+        losses = []
+        fig, ax = plt.subplots()
+        ax.set_xlabel('Iteration')
+        ax.set_ylabel('Loss')
+        ax.set_title('Loss vs. Iterations')
 
         for i in tqdm(range(self.total_iter)):
             optimizer.zero_grad()
@@ -92,19 +97,34 @@ class MeshTextureOptimizer:
                 random.choices(range(len(self.query_cameras)), k=self.args.views_per_iter)]
             rend = torch.permute(self.renderer(mesh, cameras=sampled_cameras)[..., :3], (0, 3, 1, 2))
             loss = self.compute_loss(rend, i)
+            losses.append(loss)
+            ax.clear()  # Clear previous plot
+            ax.plot(losses, 'r-')  # Plot the updated losses
+            ax.set_xlabel('Iteration')
+            ax.set_ylabel('Loss')
+            ax.set_title('Loss vs. Iterations')
+            ax.set_xlim(0, self.total_iter)  # Set fixed x-axis limit
+            ax.set_ylim(min(losses), max(losses) + 1)  # Dynamically adjust y-axis limit
+
+            plt.savefig("loss_plot.png")
             print(f"Iter {i}, Loss: {loss.item()}")
             loss.backward()
+            # print("Scale grad:", diff_objects.scale.grad)
+            # print("Rotation grad:", diff_objects.rotation.grad)
+            # print("Transition grad:", diff_objects.transition.grad)
             torch.nn.utils.clip_grad_norm_(diff_objects.parameters(), max_norm=1.0)
+            # print("Before step:", diff_objects.scale[:], diff_objects.rotation[:], diff_objects.transition[:])
             optimizer.step()
+            # print("After step:", diff_objects.scale[:], diff_objects.rotation[:], diff_objects.transition[:])
             scheduler.step()
 
-            transformed_meshes=diff_objects.meshes
-            if len(transformed_meshes)>1:
+            transformed_meshes = diff_objects.meshes
+            print(len(transformed_meshes))
+            if len(transformed_meshes) > 1:
                 dist = self.compute_distance_between_meshes(transformed_meshes[1], transformed_meshes[2])
                 self.distance_history.append((iter, dist))
                 log_path = os.path.join(self.output_dir, "logs.txt")
                 self.write_log(log_path, f"Iter {iter}, Distance between meshes: {dist}")
-
 
             if i % self.log_interval == 0 or i == self.total_iter - 1:
                 self.log_outputs(mesh, i, loss, sampled_cameras[0])
@@ -142,10 +162,10 @@ class MeshTextureOptimizer:
                 save_mesh_as_ply(mesh.detach(), os.path.join(self.output_dir, f"final_mesh.ply"))
 
     def compute_distance_between_meshes(self, mesh1, mesh2):
-        """Compute the Euclidean distance between the centroids of two meshes."""
-        centroid1 = compute_centroid(mesh1)
-        centroid2 = compute_centroid(mesh2)
-        return euclidean_distance(centroid1, centroid2).item()
+        centroid1 = mesh1.verts_packed().mean(0)
+        centroid2 = mesh2.verts_packed().mean(0)
+        print((centroid1 - centroid2).norm().item())
+        return (centroid1 - centroid2).norm().item()
 
     def write_log(self, log_path, message):
         with open(log_path, 'a') as log_file:

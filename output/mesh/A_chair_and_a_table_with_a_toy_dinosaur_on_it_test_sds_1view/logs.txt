@@ -47,3 +47,23 @@ Iter 0, Distance between meshes: 0.8730369806289673
 Iter <built-in function iter>, Distance between meshes: 0.8730369806289673
 Iter 0, Loss: 2.1261048316955566
 Iter 0, Validation Score: -2.0366527239481607
+Iter <built-in function iter>, Distance between meshes: 0.8730369806289673
+Iter <built-in function iter>, Distance between meshes: 0.8730369806289673
+Iter 2, Loss: 0.09403246641159058
+Iter 2, Validation Score: -1.7529404958089192
+Iter <built-in function iter>, Distance between meshes: 0.8730369806289673
+Iter 0, Loss: 2.1261048316955566
+Iter 0, Validation Score: -2.0366527239481607
+Iter <built-in function iter>, Distance between meshes: 0.8730369806289673
+Iter <built-in function iter>, Distance between meshes: 0.8730369806289673
+Iter 2, Loss: 0.09403246641159058
+Iter 2, Validation Score: -1.752944787343343
+Iter <built-in function iter>, Distance between meshes: 0.8730369806289673
+Iter 0, Loss: 2.1261048316955566
+Iter <built-in function iter>, Distance between meshes: 0.8730369806289673
+Iter 0, Loss: 2.1261048316955566
+Iter 0, Validation Score: -2.0366527239481607
+Iter <built-in function iter>, Distance between meshes: 0.8730369806289673
+Iter <built-in function iter>, Distance between meshes: 0.8730369806289673
+Iter 2, Loss: 0.09403246641159058
+Iter 2, Validation Score: -1.752944787343343

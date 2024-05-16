@@ -41,12 +41,12 @@ if __name__ == '__main__':
     parser.add_argument(
         "--use_sds",
         type=int,
-        default=1
+        default=0
     )
     parser.add_argument(
         "--use_clip",
         type=int,
-        default=0
+        default=1
     )
     parser.add_argument(
         "--use_rand_init",
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     neg_prompt = [""]
 
     optimizer=MeshTextureOptimizer(sds,clip,mesh_paths=args.mesh_paths, output_dir=output_dir, prompt=args.prompt, neg_prompt=neg_prompt,
-        device=device,total_iter=3, args=args)
+        device=device,total_iter=5000, args=args)
     optimizer.optimize()
-    optimizer.finalize()
+    #optimizer.finalize()
     print(f"Optimization took {time.time() - start_time:.2f} seconds")
