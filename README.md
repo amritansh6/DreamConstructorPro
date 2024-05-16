@@ -74,7 +74,7 @@ python main.py
 
 Despite the specific tasks assigned, there was equal collaboration with each member helping others when encountering errors, ensuring we maintained a high level of teamwork and understanding throughout the project.
 
-5. Baseline code from [CompoDreamer]([https://duckduckgo.com](https://github.com/justin871030/CompoDreamer))
+5. Baseline code from [CompoDreamer](https://github.com/justin871030/CompoDreamer)
 
 ## Source Code and Additional Attachments
 - [Source Code Repository](https://github.com/amritansh6/DreamConstructorPro)
