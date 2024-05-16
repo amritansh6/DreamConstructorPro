@@ -84,10 +84,6 @@ class MeshTextureOptimizer:
         ], lr=1e-4, weight_decay=0)
         scheduler = get_cosine_schedule_with_warmup(optimizer, 100, int(self.total_iter * 1.5))
         losses = []
-        fig, ax = plt.subplots()
-        ax.set_xlabel('Iteration')
-        ax.set_ylabel('Loss')
-        ax.set_title('Loss vs. Iterations')
 
         for i in tqdm(range(self.total_iter)):
             optimizer.zero_grad()
@@ -97,18 +93,20 @@ class MeshTextureOptimizer:
                 random.choices(range(len(self.query_cameras)), k=self.args.views_per_iter)]
             rend = torch.permute(self.renderer(mesh, cameras=sampled_cameras)[..., :3], (0, 3, 1, 2))
             loss = self.compute_loss(rend, i)
-            losses.append(loss)
-            ax.clear()  # Clear previous plot
-            ax.plot(losses, 'r-')  # Plot the updated losses
-            ax.set_xlabel('Iteration')
-            ax.set_ylabel('Loss')
-            ax.set_title('Loss vs. Iterations')
-            ax.set_xlim(0, self.total_iter)  # Set fixed x-axis limit
-            ax.set_ylim(min(losses), max(losses) + 1)  # Dynamically adjust y-axis limit
+            losses.append(loss.item())
 
-            plt.savefig("loss_plot.png")
+            plt.figure(figsize=(10, 5))
+            plt.plot(losses, label='Loss per Iteration')
+            plt.xlabel('Iteration')
+            plt.ylabel('Loss')
+            plt.title('Loss vs. Iterations')
+            plt.legend()
+            plt.grid(True)
+            plt.savefig("loss_plot.png")  # Save the updated plot
+            plt.close()
             print(f"Iter {i}, Loss: {loss.item()}")
             loss.backward()
+
             # print("Scale grad:", diff_objects.scale.grad)
             # print("Rotation grad:", diff_objects.rotation.grad)
             # print("Transition grad:", diff_objects.transition.grad)
