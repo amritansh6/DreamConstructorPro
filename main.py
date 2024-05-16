@@ -16,32 +16,19 @@ if __name__ == '__main__':
     parser.add_argument("--seed", type=int, default=42)  # 42
     parser.add_argument("--output_dir", type=str, default="output")
     parser.add_argument(
-        "--postfix",
-        type=str,
-        default="_test",
-        help="postfix for the output directory to differentiate multiple runs")
+        "--postfix",type=str,default="_test",help="postfix for the output directory to differentiate multiple runs")
 
     parser.add_argument(
-        "-m",
-        "--mesh_paths",
-        type=list,
-        default=["data/dg/chair_sai.obj", "data/dg/table_sai.obj", "data/dg/toy_dinosaur_sai.obj"],
-        help="Path to the input image",
+        "-m", "--mesh_paths",type=list,default=["data/dg/chair_sai.obj", "data/dg/table_sai.obj", "data/dg/toy_dinosaur_sai.obj"],help="Path to the input image",
     )
     parser.add_argument(
-        "--dist",
-        type=int,
-        default=4
+        "--dist",type=int, default=4
     )
     parser.add_argument(
-        "--views_per_iter",
-        type=int,
-        default=1
+        "--views_per_iter", type=int, default=1
     )
     parser.add_argument(
-        "--use_sds",
-        type=int,
-        default=0
+        "--use_sds",type=int, default=0
     )
     parser.add_argument(
         "--use_clip",
@@ -49,9 +36,7 @@ if __name__ == '__main__':
         default=1
     )
     parser.add_argument(
-        "--use_rand_init",
-        type=int,
-        default=0
+        "--use_rand_init", type=int,  default=0
     )
     args = parser.parse_args()
     args.mesh_init_orientations = [(0, 0, 0), (0, 0, 0), (0, 0, 0)]  # meshes from DreamGaussian need not to be rotated
